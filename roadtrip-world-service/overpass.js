@@ -1,28 +1,57 @@
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
+const OVERPASS_ENDPOINTS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+]
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 export async function fetchRoads(bbox) {
-    const query = `[out:json][timeout:25];(way["highway"](${bbox.minLat},${bbox.minLng},${bbox.maxLat},${bbox.maxLng}););out body;>;out skel qt;`
+    const query = `
+[out:json][timeout:25];
+(
+  way["highway"](${bbox.minLat},${bbox.minLng},${bbox.maxLat},${bbox.maxLng});
+);
+out body;
+>;
+out skel qt;
+`
 
-    const body = new URLSearchParams({ data: query })
+    let lastError = null
 
-    const response = await fetch(OVERPASS_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': '*/*',
-            'User-Agent': 'roadtrip-world-service/0.1 (dev)'
-        },
-        body: body.toString()
-    })
+    for (const url of OVERPASS_ENDPOINTS) {
+        try {
+            console.log(`Trying Overpass endpoint: ${url}`)
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json',
+                    'User-Agent': 'roadtrip-world-service/0.1 (dev)'
+                },
+                body: `data=${encodeURIComponent(query)}`,
+                signal: AbortSignal.timeout(30000)
+            })
 
+            if (!response.ok) {
+                const text = await response.text()
+                console.warn(`Endpoint ${url} failed: ${response.status}`)
+                lastError = new Error(`Overpass ${response.status} from ${url}: ${text.slice(0, 200)}`)
+                await delay(1000)
+                continue
+            }
 
-    if (!response.ok) {
-        const text = await response.text()
-        throw new Error(`Overpass request failed: ${response.status} – ${text.slice(0, 200)}`)
+            const data = await response.json()
+            console.log(`Success from ${url}`)
+            return parseOverpassResponse(data)
+        } catch (err) {
+            console.warn(`Endpoint ${url} error: ${err.message}`)
+            lastError = err
+            await delay(1000)
+        }
     }
 
-    const data = await response.json()
-    return parseOverpassResponse(data)
+    throw lastError || new Error('All Overpass endpoints failed')
 }
 
 function parseOverpassResponse(data) {
