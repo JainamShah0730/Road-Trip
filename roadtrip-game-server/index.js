@@ -39,6 +39,21 @@ io.on('connection', (socket) => {
         socket.emit('room-state', rooms[roomCode].players)
 
         socket.to(roomCode).emit('player-joined', { playerId: socket.id, ...rooms[roomCode].players[socket.id] })
+
+        socket.on('activity-result', (result) => {
+            const roomCode = socket.data.roomCode;
+            if (!roomCode) return;
+            io.to(roomCode).emit('activity-result-broadcast', { playerId: socket.id, ...result });
+        });
+    })
+
+
+    socket.on('position-update', (pos) => {
+        const roomCode = socket.data.roomCode
+        if (!roomCode || !rooms[roomCode]) return;
+
+        rooms[roomCode].players[socket.id] = { ...pos }
+        socket.to(roomCode).emit('player-moved', { playerId: socket.id, ...pos })
     })
 
     socket.on('disconnect', () => {

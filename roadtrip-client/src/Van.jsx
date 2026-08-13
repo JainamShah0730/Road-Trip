@@ -2,11 +2,11 @@ import { useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from 'three';
 import { useKeyboardControls } from "./useKeyboardControls";
-
+import { socket } from "./socket";
 const SPEED = 8;
 const TURN_SPEED = 2;
 
-function Van() {
+function Van({ onPositionUpdate }) {
     const meshRef = useRef()
     const keys = useKeyboardControls();
     const { camera } = useThree();
@@ -35,6 +35,18 @@ function Van() {
         const targetCamPos = meshRef.current.position.clone().add(camOffset);
         camera.position.lerp(targetCamPos, 0.1);
         camera.lookAt(meshRef.current.position)
+
+        if (!Van.lastEmit || state.clock.elapsedTime - Van.lastEmit > 0.05) {
+            Van.lastEmit = state.clock.elapsedTime;
+            const pos = {
+                x: meshRef.current.position.x,
+                y: meshRef.current.position.y,
+                z: meshRef.current.position.z,
+                rotationY: rotationY.current
+            }
+            socket.emit('position-update', pos)
+            onPositionUpdate?.(pos)
+        }
     })
 
     return (
