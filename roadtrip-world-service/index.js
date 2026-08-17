@@ -4,19 +4,21 @@ import dotenv from 'dotenv'
 import { fetchRoads } from './overpass.js'
 import { fetchElevations } from './elevation.js'
 import fs from 'fs'
+import { fetchWaterFeatures } from './overpass.js'
 
 
 dotenv.config()
 
 
 const SANTA_MONICA_BBOX = {
-    minLat: 34.0075,
-    maxLat: 34.0105,
-    minLng: -118.4985,
-    maxLng: -118.4955
+    minLat: 33.998,
+    maxLat: 34.020,
+    minLng: -118.510,
+    maxLng: -118.490
 }
 
 const CACHE_FILE = './roads-cache.json'
+const WATER_CACHE_FILE = './water-cache.json'
 const ELEVATION_CACHE_FILE = './elevation-cache.json'
 
 function loadElevationCache() {
@@ -44,6 +46,19 @@ function saveCacheToDisk(roads) {
     fs.writeFileSync(CACHE_FILE, JSON.stringify(roads))
 }
 
+function loadWaterCacheFromDisk() {
+    if (fs.existsSync(WATER_CACHE_FILE)) {
+        return JSON.parse(fs.readFileSync(WATER_CACHE_FILE, 'utf-8'))
+    }
+    return null
+}
+
+function saveWaterCacheToDisk(water) {
+    fs.writeFileSync(WATER_CACHE_FILE, JSON.stringify(water))
+}
+
+let waterCache = loadWaterCacheFromDisk()
+
 let roadsCache = loadCacheFromDisk()
 
 
@@ -69,6 +84,22 @@ app.get('/roads', async (req, res) => {
     } catch (err) {
         console.error(err)
         res.status(500).json({ error: 'Failed to fetch roads' })
+    }
+})
+
+app.get('/water', async (req, res) => {
+    try {
+        if (waterCache) {
+            return res.json({ count: waterCache.length, features: waterCache, cached: true })
+        }
+
+        const features = await fetchWaterFeatures(SANTA_MONICA_BBOX)
+        waterCache = features
+        saveWaterCacheToDisk(features)
+        res.json({ count: features.length, features, cached: false })
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({ error: 'Failed to fetch water features' })
     }
 })
 

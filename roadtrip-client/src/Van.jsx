@@ -3,10 +3,14 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from 'three';
 import { useKeyboardControls } from "./useKeyboardControls";
 import { socket } from "./socket";
-const SPEED = 8;
-const TURN_SPEED = 2;
+import { useGLTF } from '@react-three/drei';
+useGLTF.preload('/models/van.glb');
+
+const SPEED = 10;
+const TURN_SPEED = 4;
 
 function Van({ onPositionUpdate }) {
+    const { scene } = useGLTF('/models/van.glb');
     const meshRef = useRef()
     const keys = useKeyboardControls();
     const { camera } = useThree();
@@ -28,14 +32,16 @@ function Van({ onPositionUpdate }) {
         meshRef.current.position.z += Math.cos(rotationY.current) * velocity * delta;
 
         const camOffset = new THREE.Vector3(
-            -Math.sin(rotationY.current) * 10,
-            6,
-            -Math.cos(rotationY.current) * 10
+            -Math.sin(rotationY.current) * 14,
+            10,
+            -Math.cos(rotationY.current) * 14
         );
         const targetCamPos = meshRef.current.position.clone().add(camOffset);
         camera.position.lerp(targetCamPos, 0.1);
-        camera.lookAt(meshRef.current.position)
 
+        const lookTarget = meshRef.current.position.clone();
+        lookTarget.y = 6; // look toward the horizon, not down at the van
+        camera.lookAt(lookTarget);
         if (!Van.lastEmit || state.clock.elapsedTime - Van.lastEmit > 0.05) {
             Van.lastEmit = state.clock.elapsedTime;
             const pos = {
@@ -50,10 +56,12 @@ function Van({ onPositionUpdate }) {
     })
 
     return (
-        <mesh ref={meshRef} position={[0, 0.5, 0]}>
-            <boxGeometry args={[1, 1, 2]} />
-            <meshStandardMaterial color="#D85A30" />
-        </mesh>
+        <primitive
+            ref={meshRef}
+            object={scene}
+            position={[0, 0, 0]}
+            scale={0.6}
+        />
     )
 }
 

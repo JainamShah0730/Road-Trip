@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { overlayStyle, primaryButtonStyle, theme } from './uiTheme';
 
 const TIME_LIMIT = 6; // seconds
 const CLICK_BOOST = 6;
@@ -58,38 +59,32 @@ function FishingMinigame({ onComplete, onClose }) {
     }, [handleMash]);
 
     return (
-        <div style={{
-            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', zIndex: 10
-        }}>
+        <div style={overlayStyle}>
             {!finished ? (
                 <>
-                    <div style={{ fontSize: 18, marginBottom: 16 }}>🎣 Mash SPACE or click to reel it in!</div>
-                    <div style={{ width: 280, height: 24, background: '#333', borderRadius: 12, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>🎣</div>
+                    <div style={{ fontSize: 18, marginBottom: 20, fontWeight: 500 }}>Mash SPACE or click to reel it in!</div>
+                    <div style={{ width: 300, height: 20, background: 'rgba(255,255,255,0.1)', borderRadius: theme.radius.pill, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <div style={{
-                            width: `${progress}%`, height: '100%', background: '#1D9E75',
-                            transition: 'width 0.1s linear'
+                            width: `${progress}%`, height: '100%', background: theme.colors.success,
+                            transition: 'width 0.1s linear', borderRadius: theme.radius.pill
                         }} />
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 13, opacity: 0.7 }}>{timeLeft.toFixed(1)}s left</div>
-                    <button
-                        onClick={handleMash}
-                        style={{
-                            marginTop: 24, padding: '14px 28px', fontSize: 16, borderRadius: 10,
-                            background: '#D85A30', color: '#fff', border: 'none', cursor: 'pointer'
-                        }}
-                    >
+                    <div style={{ marginTop: 10, fontSize: 13, color: theme.colors.textMuted }}>{timeLeft.toFixed(1)}s left</div>
+                    <button onClick={handleMash} style={{ ...primaryButtonStyle(theme.colors.accent), marginTop: 28 }}>
                         Reel!
                     </button>
-                    <button onClick={onClose} style={{ marginTop: 16, background: 'none', border: 'none', color: '#aaa', fontSize: 12, cursor: 'pointer' }}>
+                    <button onClick={onClose} style={{ marginTop: 14, background: 'none', border: 'none', color: theme.colors.textMuted, fontSize: 12, cursor: 'pointer' }}>
                         cancel
                     </button>
                 </>
             ) : (
-                <div style={{ fontSize: 22 }}>
-                    {progress >= 100 ? '🐟 Caught one!' : '💨 It got away...'}
-                </div>
+                <>
+                    <div style={{ fontSize: 40, marginBottom: 8 }}>{progress >= 100 ? '🐟' : '💨'}</div>
+                    <div style={{ fontSize: 22, fontWeight: 500 }}>
+                        {progress >= 100 ? 'Caught one!' : 'It got away...'}
+                    </div>
+                </>
             )}
         </div>
     );
